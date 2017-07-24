@@ -41,7 +41,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private int ENABLE_BLUETOOTH = 2;
     OutputStream outputStream = null;
     private static final UUID MY_UUID_SECURE = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");//蓝牙串口服务相关UUID
-    private String blueAddress = "20:13:11:22:05:23";//蓝牙模块的MAC地址
+    private String blueAddress = "20:15:12:29:21:48";//蓝牙模块的MAC地址
     private TextView textX;
     private TextView textY;
     private TextView textZ;
@@ -49,7 +49,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     float[]  ORIENTATION;
     float[] magneticValues;
     float[] accelerometerValues;
-    private  int b_direction=-1;//之前的向量，用于和新向量对比判断方向,初始为-1;
+    private  int b_direction=0;//;
     BluetoothAdapter mBluetoothAdapter;
     BluetoothDevice mBluetoothDevice;
     BluetoothSocket bluetoothSocket;
@@ -67,7 +67,21 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             mBluetoothAdapter.startDiscovery();
         }
     };
-
+    //定时向蓝牙发送手机的方向
+    TimerTask  cirtimeTask=new TimerTask() {
+        @Override
+        public void run() {
+            if (bluetoothSocket != null) {
+                try {
+                    outputStream = bluetoothSocket.getOutputStream();
+                    byte[] buffer = String.valueOf(b_direction).getBytes();
+                    outputStream.write(buffer);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    };
 
 
     @Override
@@ -152,13 +166,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
         if (event.sensor.getType() == Sensor.TYPE_ORIENTATION) {
             ORIENTATION = event.values.clone();
-            int x = (int) ORIENTATION[0] / 30;
-            int y = (int) ORIENTATION[1] / 30;
-            int z = (int) ORIENTATION[2] / 30;
+            int x = (int) ORIENTATION[0] ;
+            int y = (int) ORIENTATION[1] ;
+            int z = (int) ORIENTATION[2] ;
             textX.setText(String.valueOf(x));
             textY.setText(String.valueOf(y));
             textZ.setText(String.valueOf(z));
-//软件刚启动获取第一个方向
+            b_direction=x/10;
+/*软件刚启动获取第一个方向
             if (b_direction == -1) {
                 b_direction = x;
                 String s = "A";//要传输的字符串
@@ -179,7 +194,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 byte[] buffer = s.getBytes();
                 bluesend(buffer);
                 b_direction = x;
-            }
+            }*/
 
 
         }
@@ -224,6 +239,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }catch (IOException e){
             e.printStackTrace();
         }
+        time.schedule(cirtimeTask,1000,1500);
     }
 
     public void bluesend(byte[] message){
